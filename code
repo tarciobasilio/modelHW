@@ -1,0 +1,251 @@
+#Dados de entrada:
+#1 - NÃºmero de alelos
+#Numero de geraÃ§Ãµes
+#Taxa de SeleÃ§Ã£o
+#
+
+
+simples <- function(p, q, adp, adpq, adq, n){
+  
+  if(p+q!=1) return(print("Entradas inválidas"))
+  
+  matriz <- matrix(nrow = 3, ncol = 1)
+  matriz[1,1]=p*p
+  matriz[2,1]=2*p*q
+  matriz[3,1]=q*q
+  
+  for(i in 1:n){
+    
+    feqAA <- p*p*adp
+    feqAa <- 2*p*q*adpq
+    feqaa <- q*q*adq
+    W <- feqaa+feqAa+feqAA
+    p=(feqAA+(feqAa/2))/W
+    q=(feqaa+(feqAa/2))/W
+    
+    gen <- c(feqAA, feqAa, feqaa)
+    matriz <- cbind(matriz, gen)
+  }
+  plot(c(1,n),c(0,1), type = "n", xlab = "Gerações", ylab = "Frequência")
+  lines(matriz[1,], col = "blue")
+  lines(matriz[2,], col = "purple")
+  lines(matriz[3,], col= "red")
+  legend("top", c("AA","Aa","aa"), xpd = TRUE, horiz = TRUE, inset = c(0,-0.15), col = c("Blue", "Purple", "red"), pch =16)
+  
+  return(matriz)
+  
+}
+
+
+multialel <- function(p,q,r, adpA, adpB, adpAB, adpO){
+  fenA = (p*p + 2*p*r)*adpA
+  fenB = (q*q + 2*q*r)*adpB
+  fenAB = 2*p*q*adpAB
+  fenO = r*r*adpO
+  W = fenA + fenB + fenAB + fenO
+  freqP = (p*p*adpA + p*r*adpA +p*q*adpAB)/W
+  freqQ = (q*q*adpB + p*q*adpAB + q*r*adpB)/W
+  freqR = (r*r*adpO + p*r*adpA + q*r*adpB)/W
+  
+  back <- c(fenA, fenB, fenAB, fenO, freqP, freqQ, freqR)
+  return(back)
+  
+}
+
+
+recurs <- function(p, q, r, adpA, adpB, adpAB, adpO, n){
+  
+  if(p+q+r!=1) return(print("Entradas inválidas"))
+  matriz <- matrix(nrow = 7, ncol = 1)
+  
+  for(i in 1:n){
+    
+    if(i!=1) matriz <- cbind(matriz, multialel(p, q, r, adpA, adpB, adpAB, adpO))
+    else matriz[,1] = multialel(p,q,r,1,1,1,1)
+    
+    p = matriz[5,i]
+    q = matriz[6,i]
+    r = matriz[7,i]
+  }
+  
+  plot(c(1,n),c(0,1), type = "n", xlab = "Gerações", ylab = "Frequência")
+  lines(matriz[1,], col = "blue")
+  lines(matriz[2,], col = "purple")
+  lines(matriz[3,], col= "red")
+  lines(matriz[4,], col= "green")
+  legend("top", c("Tipo A","Tipo B","Tipo AB", "Tipo O"), xpd = TRUE, horiz = TRUE, inset = c(0,-0.15),
+         col = c("Blue", "Purple", "Red", "Green"), pch =16)
+  
+  
+  return(matriz)
+}
+
+coelho <- function(p, q, r, s, adp, adq, adr, ads, n){
+  
+  if(p+q+r+s!=1) return(print("Entradas inválidas"))
+  
+  
+  matriz <- matrix(nrow = 4, ncol = 1)
+  
+  fenAg = p*p + 2*p*q + 2*p*r + 2*p*s
+  fenCh = q*q + 2*q*r + 2*q*s
+  fenHi = r*r + 2*r*s
+  fenAl = s*s
+  
+  matriz[1,1] = fenAg
+  matriz[2,1] = fenCh
+  matriz[3,1] = fenHi
+  matriz[4,1] = fenAl
+  
+  for (i in 1:n) {
+    fenAg = (p*p + 2*p*q + 2*p*r + 2*p*s)*adp
+    fenCh = (q*q + 2*q*r + 2*q*s)*adq
+    fenHi = (r*r + 2*r*s)*adr
+    fenAl = s*s*ads
+    
+    W = fenAl + fenHi + fenCh + fenAg
+    
+    p1 = (p*p + p*q + p*r + p*s)*adp/W
+    q1 = (q*q*adq + p*q*adp + q*r*adq + q*s*adq)/W
+    r1 = (r*r*adr + p*r*adp + q*r*adq + r*s*adr)/W
+    s1 = (s*s*ads + p*s*adp + q*s*adq + r*s*ads)/W
+    
+    p=p1
+    q=q1
+    r=r1
+    s=s1
+    
+    matriz <- cbind(matriz, c(fenAg, fenCh, fenHi, fenAl))
+  }
+  
+  plot(c(1,n),c(0,1), type = "n", xlab = "Gerações", ylab = "Frequência")
+  lines(matriz[1,], col = "blue")
+  lines(matriz[2,], col = "purple")
+  lines(matriz[3,], col= "red")
+  lines(matriz[4,], col= "green")
+  legend("top", c("Aguti","Chinchila","Himalaio", "Albino"), xpd = TRUE, horiz = TRUE, inset = c(0,-0.15),
+         col = c("Blue", "Purple", "Red", "Green"), pch =16)
+  
+  return(matriz)
+  
+}
+
+
+
+
+
+
+install.packages(shiny)
+library(shiny)
+
+ui <- fluidPage(
+  headerPanel('Modelos Geneticos'),
+  tabsetPanel(
+    tabPanel("Sistema simples - 2 alelos",
+             sidebarPanel(
+               sliderInput(inputId = "feq1_1", 
+                           label = "Frequencia do gene dominante", 
+                           value = 0.5, min = 0, max = 1),
+               sliderInput(inputId = "feq1_2", 
+                           label = "Frequencia do gente recessivo", 
+                           value = 0.5, min = 0, max = 1),
+               sliderInput(inputId = "sel1_1", 
+                           label = "Adaptabilidade do homozigoto dominante", 
+                           value = 1, min = 0, max = 1),
+               sliderInput(inputId = "sel1_2", 
+                           label = "Adaptabilidade do heterozigoto", 
+                           value = 1, min = 0, max = 1),
+               sliderInput(inputId = "sel1_3", 
+                           label = "Adaptabilidade do homozigoto recessivo", 
+                           value = 1, min = 0, max = 1),
+               numericInput(inputId = "n1", label = "Numero de geracoes",
+                            value = 10, min = 0)
+             ),
+             mainPanel(
+               plotOutput('hist')
+             )
+    ),
+    tabPanel("Sistema ABO - 3 alelos",
+             sidebarPanel(
+               sliderInput(inputId = "feq2_1", 
+                           label = "Frequencia do gene do tipo A", 
+                           value = 0.33, min = 0, max = 1),
+               sliderInput(inputId = "feq2_2", 
+                           label = "Frequencia do gene do tipo B", 
+                           value = 0.33, min = 0, max = 1),
+               sliderInput(inputId = "feq2_3", 
+                           label = "Frequencia do gene do tipo O", 
+                           value = 0.34, min = 0, max = 1),
+               sliderInput(inputId = "sel2_1", 
+                           label = "Adaptabilidade do sangue A", 
+                           value = 1, min = 0, max = 1),
+               sliderInput(inputId = "sel2_2", 
+                           label = "Adaptabilidade do sangue B", 
+                           value = 1, min = 0, max = 1),
+               sliderInput(inputId = "sel2_3", 
+                           label = "Adaptabilidade do sangue AB", 
+                           value = 1, min = 0, max = 1),
+               sliderInput(inputId = "sel2_4", 
+                           label = "Adaptabilidade do sangue O", 
+                           value = 1, min = 0, max = 1),
+               numericInput(inputId = "n2", label = "Numero de geracoes",
+                            value = 10, min = 0)
+             ),
+             mainPanel(
+               plotOutput('hist1')
+             )
+    ),
+    tabPanel("Pelagem dos coelhos - 4 alelos",
+             sidebarPanel(
+               sliderInput(inputId = "feq3_1", 
+                           label = "Frequencia do gene Aguti", 
+                           value = 0.25, min = 0, max = 1),
+               sliderInput(inputId = "feq3_2", 
+                           label = "Frequencia do gene Chinchila", 
+                           value = 0.25, min = 0, max = 1),
+               sliderInput(inputId = "feq3_3", 
+                           label = "Frequencia do gene Himalaio", 
+                           value = 0.25, min = 0, max = 1),
+               sliderInput(inputId = "feq3_4", 
+                           label = "Frequencia do gene Albino", 
+                           value = 0.25, min = 0, max = 1),
+               sliderInput(inputId = "sel3_1", 
+                           label = "Adaptabilidade do Aguti", 
+                           value = 1, min = 0, max = 1),
+               sliderInput(inputId = "sel3_2", 
+                           label = "Adaptabilidade da Chinchila", 
+                           value = 1, min = 0, max = 1),
+               sliderInput(inputId = "sel3_3", 
+                           label = "Adaptabilidade do Himalaio", 
+                           value = 1, min = 0, max = 1),
+               sliderInput(inputId = "sel3_4", 
+                           label = "Adaptabilidade do Albino", 
+                           value = 1, min = 0, max = 1),
+               numericInput(inputId = "n3", label = "Numero de geracoes",
+                            value = 10, min = 0)  
+             ),
+             mainPanel(
+               plotOutput('hist2')
+             )
+    )
+  )
+)
+
+
+server <- function(input, output) {
+  
+  
+  
+  output$hist <- renderPlot({
+    simples(input$feq1_1, input$feq1_2, input$sel1_1, input$sel1_2, input$sel1_3, input$n1)
+  })
+  output$hist1 <- renderPlot({
+    recurs(input$feq2_1, input$feq2_2, input$feq2_3, input$sel2_1, input$sel2_2, input$sel2_3, input$sel2_4, input$n2)
+  })
+  output$hist2 <- renderPlot({
+    coelho(input$feq3_1, input$feq3_2, input$feq3_3, input$feq3_4,
+           input$sel3_1, input$sel3_2, input$sel3_3, input$sel3_4, input$n3)
+  })
+}
+
+shinyApp(ui = ui, server = server)
